@@ -1,0 +1,6 @@
+# fly.toml file generated for tendabot on 2022-08-28T09:30:46+09:00
+
+app = "tendabot"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
