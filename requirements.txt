@@ -20,8 +20,8 @@ lxml==4.9.1
 mccabe==0.6.1
 multidict==6.0.2
 mypy-extensions==0.4.3
-numpy==1.22.3
-pandas==1.4.2
+numpy>=1.22.3
+pandas>=1.4.2
 pathspec==0.9.0
 Pillow==9.2.0
 platformdirs==2.5.2
