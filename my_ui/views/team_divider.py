@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import discord
 from collections import deque, Counter
 from decimal import Decimal, ROUND_HALF_UP
@@ -362,7 +363,11 @@ class TeamDivideDropdownView(discord.ui.View):
 
         for i in range(len(self.divided_team_list)):
             for member in self.divided_team_list[i]:
-                await member.edit(voice_channel=voicechannel_list[i])
+                try:
+                    await member.edit(voice_channel=voicechannel_list[i])
+
+                except Exception as e:
+                    logger.error(e)
 
             if len(self.divided_team_list) * len(self.divided_team_list[i]) > 10:
                 await asyncio.sleep(7)
