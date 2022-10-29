@@ -235,7 +235,19 @@ class TestCog(commands.Cog):
             callback=self.my_cool_context_menu,
             guild_ids=[int(os.environ["SHICHI_GUILD_ID"]), int(os.environ["MOI_GUILD_ID"])],
         )
+
+        self.delete_message_ctx_menu = app_commands.ContextMenu(
+            name="このメッセージを削除",
+            callback=self.message_delete,
+            guild_ids=[int(os.environ["SHICHI_GUILD_ID"]), int(os.environ["MOI_GUILD_ID"])],
+        )
+
         self.bot.tree.add_command(self.ctx_menu)
+        self.bot.tree.add_command(self.delete_message_ctx_menu)
+
+        @self.delete_message_ctx_menu.error
+        async def permission_deny(interation: discord.Interaction, error: app_commands.AppCommandError):
+            await interation.response.send_message("実行権限がありません", ephemeral=True)
 
     @app_commands.command(name="テンダちゃーん", description="テンダちゃんを呼びます")
     @app_commands.guilds(discord.Object(id=int(os.environ["SHICHI_GUILD_ID"])), discord.Object(id=int(os.environ["MOI_GUILD_ID"])))
@@ -334,54 +346,22 @@ class TestCog(commands.Cog):
 
         await interaction.followup.send("complete")
 
-        #     result = await future
-        #     print(cnt, result.voice.channel.name)
-        #     cnt += 1
-        # lis = [interaction.user.edit(voice_channel=voicechannel_list[i % 2]) for i in range(N)]
-        # cnt = 1
-        # await asyncio.sleep(3)
-        # for future in asyncio.as_completed(lis):
-        #     result = await future
-        #     print(cnt, result.voice.channel.name, self.bot.is_ws_ratelimited())
-        #     cnt += 1
+    def is_sub_leader():
+        def predicate(interaction: discord.Interaction) -> bool:
+            sub_leader_IDs = [int(os.environ["niwaka_ID"]), int(os.environ["rotoru_ID"])]
+            return interaction.user.id in sub_leader_IDs
 
-        # await asyncio.gather(*lis)
+        return app_commands.check(predicate)
 
-        # print("asyncio sleep......")
+    @is_sub_leader()
+    async def message_delete(self, interaction: discord.Interaction, message: discord.Message):
+        try:
+            await message.delete()
+            await interaction.response.send_message("メッセージを削除しました", ephemeral=True)
 
-        # await asyncio.sleep(sleep_time)
-
-        # lis = [interaction.user.edit(voice_channel=voicechannel_list[i % 2]) for i in range(N)]
-        # await asyncio.gather(*lis)
-
-    # コンテキストメニューに追加予定
-    #     @discord.ui.button(label="ボットボイス入室", style=discord.ButtonStyle.blurple, custom_id="TendaView:voice_channel_enter", row=3)
-    # async def enter_voice_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
-    #     if interaction.user.voice:
-
-    #         await interaction.user.voice.channel.connect()
-    #         await interaction.response.edit_message(content="ボイスチャンネルに入室しました！")
-
-    #     else:
-    #         await interaction.response.send_message("ボイスチャンネルに参加した状態でボタンを押してね！", ephemeral=True)
-
-    # @discord.ui.button(label="ボットボイス退室", style=discord.ButtonStyle.blurple, custom_id="TendaView:voice_channel_out", row=3)
-    # async def out_voice_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
-
-    #     if self.bot.voice_clients:
-    #         for voice_client in self.bot.voice_clients:
-    #             if voice_client.guild == interaction.user.guild:
-    #                 await voice_client.disconnect()
-    #                 await interaction.response.edit_message(content="ボイスチャンネルを退室しました！")
-    #                 break
-    #         else:
-    #             await interaction.response.send_message(content="私はボイスチャンネルに接続していないよ！", ephemeral=True)
-
-    #     else:
-    #         await interaction.response.send_message(
-    #             content="私はボイスチャンネルに接続していないよ！\nもし、ボイスチャンネル上にアイコンが残っている場合には「ボットボイス入室」ボタンを押してからこのボタンをもう一度押してみてください！",
-    #             ephemeral=True,
-    #         )
+        except Exception as e:
+            logger.error(e)
+            await interaction.response.send_message("メッセージを削除できませんでした。\nもう一度実行するか、削除するメッセージを確認してください", ephemeral=True)
 
     async def my_cool_context_menu(self, interaction: discord.Interaction, message: discord.Message):
         message = "機体カテゴリ、コストを指定してね！"
