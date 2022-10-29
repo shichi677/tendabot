@@ -36,14 +36,11 @@ Git管理が不要なファイル/ディレクトリの設定ファイルです�
 このドキュメントです。
 
 # 行ったこと
-- fly.ioに移行
-- view リファクタリング
-- logging
-- 一部 aiohttpに
-- message edit時の読み上げ
+- メンバー移動時の例外処理
+- message削除機能 副隊長
 
 # 行うこと
-- message削除機能 副隊長にロール
+
 
 ## requirementsの書き方
 
@@ -134,6 +131,11 @@ https://discord.com/api/oauth2/authorize?client_id=758857025516994570&permission
 - 正方形クロップ
 - ms選択(一括)の数字かぶらないように
 - ルール決め刷新 (マップ取得利用した画像等)
+- fly.ioに移行
+- view リファクタリング
+- logging
+- 一部 aiohttpに
+- message edit時の読み上げ
 
 # アイディア
 - 練習、本番後にクランマッチスケジュールを表示
