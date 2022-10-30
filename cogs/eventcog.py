@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import aiohttp
 import asyncio
 import asyncgTTS
+from PIL import Image
 
 from cogs.tendacog import TendaView
 from modules import get_clanmatch_info, FFmpegPCMAudio, CreateText, url_image_process, get_stage
@@ -110,7 +111,7 @@ class EventCog(commands.Cog):
         logger.info(f"guild: {self.clanmatch_send_message_ch.guild.name}")
 
         try:
-            await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot, reason="initialize")
+            await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot and "クランマッチ" not in m.clean_content, reason="initialize")
 
         except Exception as e:
             logger.info(f"ボタンメッセージの削除に失敗しました: {e}")
@@ -135,44 +136,42 @@ class EventCog(commands.Cog):
                 else:
                     return None
 
-        # 何分前に通知するか
-        delay_time = 60
-
         # タイムゾーン取得
         JST = datetime.timezone(datetime.timedelta(hours=+9), "JST")
 
         # 現在時刻にdelay_timeを足したものを現在時刻とする
-        dt_now = datetime.datetime.now(JST) + datetime.timedelta(minutes=delay_time)
+        dt_now = datetime.datetime.now(JST)
         now = dt_now.strftime("%Y%m%d%H%M")
 
         # デバッグ用
         # now = "202208250500"
-        # now = "202209160600"
-        # logger.info(now)
 
-        if now[-2:] == "00":
-            logger.info(now)
-            logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
-            logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
+        # logger.info(now)
 
         if now[-4:] == "0600":
             logger.info("message clean")
-            await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot, reason="initialize")
+            await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot and "クランマッチ" not in m.clean_content, reason="initialize")
             self.bot.latest_tendaview_message = None
             logger.info("clanmatch schedule update")
             self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=self.daycord_url)
             logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
             logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
 
+        # 何分前に通知するか
+        notification_min = 60
+        clanmatch_notifi_time_dt = dt_now + datetime.timedelta(minutes=notification_min)
+        clanmatch_notifi_time = clanmatch_notifi_time_dt.strftime("%Y%m%d%H%M")
+        # clanmatch_notifi_time = "202211042100"
+
         # 現在時刻が練習もしくは本番時刻のとき
-        if now == self.practice_date or now == self.match_date:
+        if clanmatch_notifi_time == self.practice_date or clanmatch_notifi_time == self.match_date:
 
             # 練習化
-            if now == self.practice_date:
+            if clanmatch_notifi_time == self.practice_date:
                 number = 2
                 match_type = "クランマッチ練習"
 
-            elif now == self.match_date:
+            elif clanmatch_notifi_time == self.match_date:
                 number = 3
                 match_type = "クランマッチ"
 
@@ -296,8 +295,81 @@ class EventCog(commands.Cog):
                 embeds.append(prise_embed)
 
             # メッセージ
-            message = f"@everyone\n{match_type}の時間の{delay_time}分前になりました！"
+            message = f"@everyone\n{match_type}の時間の{notification_min}分前になりました！"
             await self.clanmatch_send_message_ch.send(content=message, embeds=embeds, files=files)
+
+        # 何分後に通知するか
+        notification_min = 120
+        after_clanmatch_notifi_time_dt = dt_now - datetime.timedelta(minutes=notification_min)
+        after_clanmatch_notifi_time = after_clanmatch_notifi_time_dt.strftime("%Y%m%d%H%M")
+        # after_clanmatch_notifi_time = "202211052100"
+
+        if after_clanmatch_notifi_time == self.match_date:
+            # クランマッチ情報取得
+            try:
+                self.clanmatch_info = await get_clanmatch_info()
+                embeds = []  # embedリスト クランマッチ開催情報3つ + 報酬情報
+                files = []  # 画像リスト マップ3つ + 報酬MS
+
+                # マッチ情報3つについて
+                for hold_num in self.clanmatch_info["Hold"]:
+                    # マッチ情報embed作成
+                    match_info = "日　時：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(self.clanmatch_info["Hold"][hold_num])
+                    embed = Embed(title=hold_num, description=match_info, colour=discord.Colour.blue())
+
+                    # マップ画像
+                    stage = self.clanmatch_info["Hold"][hold_num]["stage"]
+                    stage_dict = await get_stage()
+                    image_url = stage_dict[stage]["image_url"]
+                    filename = f"image_{len(files)}.png"
+
+                    # 画像取得のためのセッション
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image_url) as resp:
+                            # getしてきたものをread
+                            image = await resp.read()
+                            # pilで読み込んで正方形にクロップしてサムネイルに
+                            pil_img = Image.open(BytesIO(image))
+                            file = url_image_process(url=image_url, pil_img=pil_img, method="crop", filename=filename, crop_size=400)
+                            embed.set_thumbnail(url=f"attachment://{filename}")
+
+                            embeds.append(embed)
+                            files.append(file)
+
+                # 報酬情報
+                embed = Embed(title="報酬情報", description="", colour=discord.Colour.gold())
+
+                # 報酬条件 ex.第110回 ～ 111回：1 ～ 3位
+                cond = ""
+                for key, value in self.clanmatch_info["Prise"]["Cond"].items():
+                    cond += f"{key}：{value}\n"
+                embed.add_field(name="取得条件", value=cond)
+
+                # 報酬MS情報
+                embed.add_field(name="報酬", value=self.clanmatch_info["Prise"]["MS"]["ms_name"].replace("（", "\n（"), inline=False)
+                image_url = self.clanmatch_info["Prise"]["MS"]["image_url"]
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_url) as resp:
+                        image = await resp.read()
+                        pil_img = Image.open(BytesIO(image))
+                        filename = "prise.webp"
+                        file = url_image_process(url=image_url, pil_img=pil_img, method="resize", filename=filename, resize_rate=0.24)
+                        embed.set_image(url=f"attachment://{filename}")
+                        embeds.append(embed)
+                        files.append(file)
+
+                # クランマッチスケジュールのレスポンスメッセージ
+                message = "クランマッチお疲れ様でした！\n現在公開されているクランマッチ開催スケジュールはこちらです！"
+
+                # メッセージリフレッシュ
+                await self.clanmatch_send_message_ch.send(content=message, embeds=embeds, files=files)
+
+            # エラー時
+            except Exception as e:
+                print(f"clanmatch schedule error: {e}")
+                embed = Embed(title="クランマッチ情報取得エラー", description="クランマッチ情報の取得に失敗しました。", colour=discord.Colour.red())
+                await self.clanmatch_send_message_ch.send(embed=embed)
 
     async def text_to_speech(self):
         while True:

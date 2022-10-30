@@ -7,5 +7,6 @@ from .views.rate_regist import RateRegistView
 from .button.delete import DeleteButton
 from .views.select_member import MemberSelectDropdownView
 from .views.team_divider import TeamDivideDropdownView
+from .views.confirm import ConfirmView
 
-__all__ = ["Dropdown", "RandomSelectMSView", "DiceView", "RuleSelectDropdownView", "RateRegistModal", "RateRegistView", "DeleteButton", "MemberSelectDropdownView", "TeamDivideDropdownView"]
+__all__ = ["Dropdown", "RandomSelectMSView", "DiceView", "RuleSelectDropdownView", "RateRegistModal", "RateRegistView", "DeleteButton", "MemberSelectDropdownView", "TeamDivideDropdownView", "ConfirmView"]

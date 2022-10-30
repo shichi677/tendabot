@@ -1,6 +1,6 @@
 import discordbot
 from modules import get_clanmatch_info, get_MS_page_url_from_wiki, get_spec_from_wiki_MS_page, get_stage, url_image_process
-from my_ui import Dropdown, DiceView, RandomSelectMSView, RuleSelectDropdownView, RateRegistView, MemberSelectDropdownView, RateRegistModal, TeamDivideDropdownView
+from my_ui import Dropdown, DiceView, RandomSelectMSView, RuleSelectDropdownView, RateRegistView, MemberSelectDropdownView, RateRegistModal, TeamDivideDropdownView, ConfirmView
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed
@@ -89,6 +89,7 @@ class TendaView(discord.ui.View):
         self.clanmatch_schedule_message = None
         self.rate_regist_message_id = None
         self.team_divide_message = None
+        self.rate_msg_flag = False
         # self.stage_dict = get_stage()
         self.add_item(discord.ui.Button(label="公式サイト", style=discord.ButtonStyle.blurple, url="https://bo2.ggame.jp/", row=4))
         self.add_item(discord.ui.Button(label="wiki", style=discord.ButtonStyle.blurple, url="https://w.atwiki.jp/battle-operation2/", row=4))
@@ -99,7 +100,12 @@ class TendaView(discord.ui.View):
 
     @discord.ui.button(label="レーティング登録", style=discord.ButtonStyle.blurple, custom_id="TendaView:regist", row=1)
     async def regist(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(embed=RateRegistModal.RATE_REGIST_INIT_EMBED, view=RateRegistView(self))
+        if self.rate_msg_flag:
+            await interaction.response.send_message("__すでにレーティング登録メッセージが送信されているようです。__\nレーティングを登録する場合はレーティング登録メッセージの「登録」ボタンからお願いします。\nレーティング登録メッセージを再送信する場合は「送信」ボタンを押してください。", view=ConfirmView(button_label="送信", input_callback=interaction.followup.send(embed=RateRegistModal.RATE_REGIST_INIT_EMBED, view=RateRegistView(self))), ephemeral=True)
+
+        else:
+            await interaction.response.send_message(embed=RateRegistModal.RATE_REGIST_INIT_EMBED, view=RateRegistView(self))
+            self.rate_msg_flag = True
 
     @discord.ui.button(label="チーム分け", style=discord.ButtonStyle.blurple, custom_id="TendaView:team_divide", row=1)
     async def team_divide(self, interaction: discord.Interaction, button: discord.ui.Button):
