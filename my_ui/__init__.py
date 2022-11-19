@@ -10,9 +10,9 @@ from .views.team_divider import TeamDivideDropdownView
 from .views.confirm import ConfirmView
 # from .views.draft import DraftView, DraftInitView
 
-import importlib
-import my_ui
-importlib.reload(my_ui.views.draft)
+# import importlib
+# import my_ui
+# importlib.reload(my_ui.views.draft)
 
 # from my_ui.views.draft import DraftView, DraftInitView, MemberListButton
 
