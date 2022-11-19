@@ -11,9 +11,11 @@ class FFmpegPCMAudio(discord.AudioSource):
         args = [executable]
         if isinstance(before_options, str):
             args.extend(shlex.split(before_options))
+        args.extend(("-channel_layout", "mono"))
         args.append("-i")
         args.append("-" if pipe else source)
         args.extend(("-f", "s16le", "-ar", "48000", "-ac", "2", "-loglevel", "warning"))
+        # args.extend(("-loglevel", "warning"))
         if isinstance(options, str):
             args.extend(shlex.split(options))
         args.append("pipe:1")
