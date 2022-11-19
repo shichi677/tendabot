@@ -145,7 +145,7 @@ class TendaView(discord.ui.View):
             # マッチ情報3つについて
             for hold_num in self.clanmatch_info["Hold"]:
                 # マッチ情報embed作成
-                match_info = "日　時：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(self.clanmatch_info["Hold"][hold_num])
+                match_info = "日　付：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(self.clanmatch_info["Hold"][hold_num])
                 embed = Embed(title=hold_num, description=match_info, colour=discord.Colour.blue())
 
                 # マップ画像
@@ -260,10 +260,12 @@ class TestCog(commands.Cog):
     async def call_tenda_app(self, interaction: discord.Interaction):
 
         await interaction.response.send_message("お呼びでしょーか！", view=TendaView(self.bot))
-        self.bot.latest_tendaview_message = await interaction.original_response()
+        latest_tendaview_message = await interaction.original_response()
+        self.bot.latest_tendaview_message_id = latest_tendaview_message.id
 
     @app_commands.command(name="cogreload", description="cogをリロードします")
-    @app_commands.guilds(discord.Object(id=int(os.environ["SHICHI_GUILD_ID"])))
+    # @app_commands.guilds(discord.Object(id=int(os.environ["SHICHI_GUILD_ID"])))
+    @app_commands.guilds(discord.Object(id=int(os.environ["SHICHI_GUILD_ID"])), discord.Object(id=int(os.environ["MOI_GUILD_ID"])))  # debug
     async def cogreload(self, interaction: discord.Interaction):
         message = ""
         for cog in discordbot.COGS:
