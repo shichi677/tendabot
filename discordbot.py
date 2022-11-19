@@ -1,4 +1,3 @@
-import logging
 import os
 import asyncio
 import discord
@@ -8,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv(verbose=True)
 load_dotenv(".env")
 # 読み込むコグの名前を格納しておく。
-COGS = ["cogs.eventcog", "cogs.tendacog"]
+COGS = ["cogs.eventcog", "cogs.tendacog", "cogs.draftcog"]
 
 # クラスの定義。ClientのサブクラスであるBotクラスを継承。
 class MyBot(commands.Bot):
@@ -27,7 +26,7 @@ class MyBot(commands.Bot):
 
         self.select_ms_number_img = discord.File("./image/select_ms_number.webp", filename="select_ms_number.webp")
 
-        self.latest_tendaview_message = None
+        self.latest_tendaview_message_id = None
 
     async def setup_hook(self) -> None:
         if not self.debugmode:
@@ -51,7 +50,4 @@ async def main():
 if __name__ == "__main__":
 
     discord.utils.setup_logging()
-
-    # or, for example
-    discord.utils.setup_logging(level=logging.INFO, root=False)
     asyncio.run(main())
