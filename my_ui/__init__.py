@@ -8,5 +8,13 @@ from .button.delete import DeleteButton
 from .views.select_member import MemberSelectDropdownView
 from .views.team_divider import TeamDivideDropdownView
 from .views.confirm import ConfirmView
+from .views.draft import DraftView, DraftInitView
+__all__ = ["Dropdown", "RandomSelectMSView", "DiceView", "RuleSelectDropdownView", "RateRegistModal", "RateRegistView", "DeleteButton", "MemberSelectDropdownView", "TeamDivideDropdownView", "ConfirmView", "DraftView", "DraftInitView"]
 
-__all__ = ["Dropdown", "RandomSelectMSView", "DiceView", "RuleSelectDropdownView", "RateRegistModal", "RateRegistView", "DeleteButton", "MemberSelectDropdownView", "TeamDivideDropdownView", "ConfirmView"]
+import importlib
+import my_ui
+importlib.reload(my_ui.views.draft)
+
+from my_ui.views.draft import DraftView, DraftInitView, MemberListButton
+
+
