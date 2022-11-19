@@ -12,7 +12,8 @@ from discord import Embed, ChannelType
 from dotenv import load_dotenv
 import aiohttp
 import asyncio
-import asyncgTTS
+
+# import asyncgTTS
 from PIL import Image
 
 from cogs.tendacog import TendaView
@@ -20,6 +21,8 @@ from modules import get_clanmatch_info, FFmpegPCMAudio, CreateText, url_image_pr
 
 import logging
 import logging.handlers
+
+import core
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +129,11 @@ class EventCog(commands.Cog):
         except AttributeError:
             logger.info("デイコードからの情報取得に失敗しました")
 
+        logger.info("voicevox initializing...")
+        core.initialize(use_gpu=False)
+        core.voicevox_load_openjtalk_dict("open_jtalk_dic_utf_8-1.11")
+        logger.info("voicevox initialize finished")
+
     @tasks.loop(seconds=60)
     async def send_message_every_10sec(self):
         async def get_response(session, url):
@@ -145,17 +153,23 @@ class EventCog(commands.Cog):
 
         # デバッグ用
         # now = "202208250500"
-
         # logger.info(now)
 
         if now[-4:] == "0600":
+            # plan to create initialize function
             logger.info("message clean")
             await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot and "クランマッチ" not in m.clean_content, reason="initialize")
-            self.bot.latest_tendaview_message = None
+            self.bot.latest_tendaview_message_id = None
             logger.info("clanmatch schedule update")
             self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=self.daycord_url)
             logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
             logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
+
+            core.finalize()
+            logger.info("voicevox initializing...")
+            core.initialize()
+            core.voicevox_load_openjtalk_dict("open_jtalk_dic_utf_8-1.11")
+            logger.info("voicevox initialize finished")
 
         # 何分前に通知するか
         notification_min = 60
@@ -223,7 +237,7 @@ class EventCog(commands.Cog):
 
                     # マッチ情報embed作成
                     hold_num = match_date_hold_num[0]
-                    match_info = "日　時：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(clanmatch_info["Hold"][hold_num])
+                    match_info = "日　付：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(clanmatch_info["Hold"][hold_num])
                     match_info_embed = Embed(title=hold_num, description=match_info, colour=discord.Colour.blue())
 
                     # マップ画像
@@ -314,7 +328,7 @@ class EventCog(commands.Cog):
                 # マッチ情報3つについて
                 for hold_num in self.clanmatch_info["Hold"]:
                     # マッチ情報embed作成
-                    match_info = "日　時：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(self.clanmatch_info["Hold"][hold_num])
+                    match_info = "日　付：{0[date]}\n時　間：{0[time]}\nルール：{0[rule]}\nコスト：{0[cost]}\nマップ：{0[stage]}\n人　数：{0[players]}".format(self.clanmatch_info["Hold"][hold_num])
                     embed = Embed(title=hold_num, description=match_info, colour=discord.Colour.blue())
 
                     # マップ画像
@@ -389,12 +403,15 @@ class EventCog(commands.Cog):
                             send_message = send_message.replace(key, value)
 
                     text = CreateText(send_message)
-                    async with aiohttp.ClientSession() as session:
-                        gtts = await asyncgTTS.setup(premium=False, session=session)
-                        hello_world = await gtts.get(text=text, lang="ja")
+                    # 音声合成
+                    wavefmt = core.voicevox_tts(text, 1)
+
+                    # async with aiohttp.ClientSession() as session:
+                    #     gtts = await asyncgTTS.setup(premium=False, session=session)
+                    #     hello_world = await gtts.get(text=text, lang="ja")
 
                     mp3_fp = BytesIO()
-                    mp3_fp.write(hello_world)
+                    mp3_fp.write(wavefmt)
                     mp3_fp.seek(0)
 
                     source = FFmpegPCMAudio(mp3_fp.read(), pipe=True)
@@ -425,34 +442,28 @@ class EventCog(commands.Cog):
                     await self.message_queue.put(message)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        message = ""
-
-        # ボイスチャンネルの状況取得処理
-        self.voice_channel_state = defaultdict(dict)
-        # メンバーが所属しているギルドのチャンネルに対して
-        for channel in member.guild.channels:
-            # ボイスチャンネルだったら
-            if channel.type == ChannelType.voice:
-                # ボイスチャンネルに所属しているメンバーに対して
-                for channel_member in channel.members:
-                    # bot以外だったら辞書にミュート情報を取得
-                    if not channel_member.bot:
-                        self.voice_channel_state[channel][channel_member.name] = channel_member.voice.self_mute
-
-        # ボイスチャンネル状況embed生成
-        embed = Embed(title="ボイスチャンネル状況", description="", color=0x00FF00)
-        for channel, member_dict in self.voice_channel_state.items():
-
-            mute_num = 0
-            for member_name, is_mute in member_dict.items():
-                if is_mute:
-                    mute_num += 1
-
-            voice_state_embed_des = f"参加: {len(member_dict)}人\n(ミュート: {mute_num}人)"
-            embed.add_field(name=channel.name, value=f"{voice_state_embed_des}", inline=False)
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
 
         if before.channel != after.channel and not member.bot:
+            message = ""
+
+            # ボイスチャンネルの状況取得処理
+            self.voice_channel_state = defaultdict(dict)
+            # メンバーが所属しているギルドのチャンネルに対して
+            for channel in member.guild.channels:
+                # ボイスチャンネルだったら
+                if channel.type == ChannelType.voice:
+                    # ボイスチャンネルに所属しているメンバーに対して
+                    for channel_member in channel.members:
+                        # bot以外だったら辞書にミュート情報を取得
+                        if not channel_member.bot:
+                            self.voice_channel_state[channel][channel_member.name] = channel_member.voice.self_mute
+
+            # ボイスチャンネル状況embed生成
+            embed = Embed(title="ボイスチャンネル状況", description="", color=0x00FF00)
+            for channel, member_dict in self.voice_channel_state.items():
+                voice_state_embed_des = f"参加: {len(member_dict)}人\n"
+                embed.add_field(name=channel.name, value=f"{voice_state_embed_des}", inline=False)
 
             # ボイスチャット退室処理
             if after.channel is None:
@@ -471,15 +482,12 @@ class EventCog(commands.Cog):
                     else:
                         await member.voice.channel.connect()
                         # 今までview送信していなかったら送信
-                        if self.bot.latest_tendaview_message is None:
-                            if member.guild.id == int(os.environ["SHICHI_GUILD_ID"]):
-                                view_send_channel_id = int(os.environ["SHICHI_TXT_CH_GENERAL_ID"])
-
-                            else:
+                        if self.bot.latest_tendaview_message_id is None:
+                            if member.guild.id != int(os.environ["SHICHI_GUILD_ID"]):
                                 view_send_channel_id = int(os.environ["MOI_TXT_CH_BATOOPE_ID"])
-
-                            view_send_channel = self.bot.get_channel(view_send_channel_id)
-                            self.bot.latest_tendaview_message = await view_send_channel.send(content="ボタンを表示するよ！", view=TendaView(self))
+                                view_send_channel = self.bot.get_channel(view_send_channel_id)
+                                tendaview_message = await view_send_channel.send(content="ボタンを表示するよ！", view=TendaView(self))
+                                self.bot.latest_tendaview_message_id = tendaview_message.id
 
                     exist = after
 
@@ -517,17 +525,24 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(channel_id)
                 rand_num = random.random()
                 threshold = 1 / 319
-                inequal_dict = {True: "<=", False: ">"}
-
-                print(f"{member.display_name}: {round(rand_num, 5)} {inequal_dict[rand_num <= threshold]} {round(threshold, 5)}")
+                # inequal_dict = {True: "<=", False: ">"}
+                # print(f"{member.display_name}: {round(rand_num, 5)} {inequal_dict[rand_num <= threshold]} {round(threshold, 5)}")
                 if rand_num <= threshold:
                     agagaembed = Embed(title="あががいのがいっ♪あががいのがいっ♪", description=f"{member.display_name}さん！大当たり！", color=0x00FF00)
                     await channel.send(f"{member.display_name}さんが319分の1を引当てました！", embed=agagaembed)
 
                 await channel.send(content=message)
 
-        if self.bot.latest_tendaview_message is not None:
-            await self.bot.latest_tendaview_message.edit(embed=embed)
+            if self.bot.latest_tendaview_message_id is not None:
+                # update voice channel state embed
+                for channel in member.guild.channels:
+                    if channel.type == discord.ChannelType.text:
+                        try:
+                            tendaview_message = await channel.fetch_message(self.bot.latest_tendaview_message_id)
+                            await tendaview_message.edit(embed=embed)
+                            break
+                        except Exception:
+                            pass
 
 
 async def setup(bot):
