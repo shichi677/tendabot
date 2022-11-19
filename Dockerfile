@@ -41,10 +41,6 @@ RUN curl -s -OL https://jaist.dl.sourceforge.net/project/open-jtalk/Dictionary/o
     tar -xzvf open_jtalk_dic_utf_8-1.11.tar.gz && \
     mv open_jtalk_dic_utf_8-1.11 ../ 
 
-# RUN pip install Cython
-# RUN pip install pyopenjtalk
-# RUN python3 -c "import pyopenjtalk; pyopenjtalk._lazy_init()"
-
 WORKDIR /code
 RUN rm -rf voicevox_core
-# CMD python discordbot.py
+CMD python discordbot.py
