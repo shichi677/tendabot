@@ -14,12 +14,6 @@ ENV LANGUAGE ja_JP:ja
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
-# RUN swapoff /swapfile
-# RUN rm -rf /swapfile
-# RUN dd if=/dev/zero of=/swapfile bs=1M count=1024 status=progress
-# RUN chmod 600 /swapfile
-# RUN mkswap /swapfile
-# RUN swapon -a
 
 RUN mkdir /code
 WORKDIR /code
@@ -50,4 +44,4 @@ RUN curl -s -OL https://jaist.dl.sourceforge.net/project/open-jtalk/Dictionary/o
 
 WORKDIR /code
 RUN rm -rf voicevox_core
-CMD fallocate -l $(($(stat -f -c "(%a*%s/10)*7" .))) _swapfile && mkswap _swapfile && swapon _swapfile && ls -hla; free -m; python discordbot.py
+CMD fallocate -l 1024MB _swapfile && mkswap _swapfile && swapon _swapfile && ls -hla; free -m; python discordbot.py
