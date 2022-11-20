@@ -167,7 +167,7 @@ class EventCog(commands.Cog):
 
             core.finalize()
             logger.info("voicevox initializing...")
-            core.initialize()
+            core.initialize(use_gpu=False)
             core.voicevox_load_openjtalk_dict("open_jtalk_dic_utf_8-1.11")
             logger.info("voicevox initialize finished")
 
