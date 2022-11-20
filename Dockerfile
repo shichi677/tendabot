@@ -1,4 +1,4 @@
-FROM python:3.10.7
+FROM python:3.10.7my_ui.views
 
 RUN apt update
 RUN apt install -y \
@@ -14,6 +14,13 @@ ENV LANGUAGE ja_JP:ja
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
+
+RUN dd if=/dev/zero of=/swapfile bs=1M count=1024
+RUN chmod 600 /swapfile
+RUN mkswap /swapfile
+RUN swapon /swapfile
+RUN swapon -s
+
 RUN mkdir /code
 WORKDIR /code
 COPY requirements.txt /code/
