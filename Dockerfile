@@ -14,7 +14,7 @@ ENV LANGUAGE ja_JP:ja
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
-RUN swapoff /swapfile
+RUN sudo swapoff /swapfile
 RUN rm -rf /swapfile
 RUN dd if=/dev/zero of=/swapfile bs=1M count=1024 status=progress
 RUN chmod 600 /swapfile
