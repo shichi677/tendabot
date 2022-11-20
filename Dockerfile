@@ -20,7 +20,8 @@ RUN pip install --upgrade setuptools
 # RUN mkswap /swapfile
 # RUN swapon /swapfile
 # RUN swapon -s
-RUN fallocate -l 512M /swapfile
+RUN rm -f /swapfile
+RUN fallocate -l 1024M /swapfile
 RUN chmod 600 /swapfile
 RUN mkswap /swapfile
 # RUN echo 10 > /proc/sys/vm/swappiness
