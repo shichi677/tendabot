@@ -15,11 +15,16 @@ ENV LANGUAGE ja_JP:ja
 RUN pip install --upgrade pip
 RUN pip install --upgrade setuptools
 
-RUN dd if=/dev/zero of=/swapfile bs=1M count=1024
-RUN chmod 600 /swapfile
+# RUN dd if=/dev/zero of=/swapfile bs=1M count=1024
+# RUN chmod 600 /swapfile
+# RUN mkswap /swapfile
+# RUN swapon /swapfile
+# RUN swapon -s
+RUN fallocate -l 1024M /swapfile
+RUN chmod 0600 /swapfile
 RUN mkswap /swapfile
+RUN echo 10 > /proc/sys/vm/swappiness
 RUN swapon /swapfile
-RUN swapon -s
 
 RUN mkdir /code
 WORKDIR /code
