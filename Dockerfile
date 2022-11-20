@@ -21,7 +21,8 @@ RUN pip install --upgrade setuptools
 # RUN swapon /swapfile
 # RUN swapon -s
 RUN rm -f /swapfile
-RUN fallocate -l 1024M /swapfile
+RUN dd if=/dev/zero of=/swapfile bs=1M count=1024 status=progress
+# RUN fallocate -l 1024M /swapfile
 RUN chmod 600 /swapfile
 RUN mkswap /swapfile
 # RUN echo 10 > /proc/sys/vm/swappiness
