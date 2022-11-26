@@ -71,15 +71,15 @@ class EventCog(commands.Cog):
 
                     try:
                         clanmatch_practice_date = re.sub("[^0-9]", "", df.iloc[2, 0])
-                    
-                    except:
+
+                    except Exception:
                         clanmatch_practice_date = None
                         logger.error("failed fetch clanmatch practice date")
-                    
+
                     try:
                         clanmatch_date = re.sub("[^0-9]", "", df.iloc[3, 0])
 
-                    except:
+                    except Exception:
                         clanmatch_date = None
                         logger.error("failed fetch clanmatch date")
 
@@ -137,10 +137,10 @@ class EventCog(commands.Cog):
         try:
             self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=url)
             self.send_message_every_10sec.start()
-            
+
             if self.practice_date is not None:
                 logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
-            
+
             if self.match_date is not None:
                 logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
 

@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv(verbose=True)
 load_dotenv(".env")
 # 読み込むコグの名前を格納しておく。
-# COGS = ["cogs.eventcog", "cogs.tendacog", "cogs.draftcog"]
-COGS = ["cogs.eventcog", "cogs.tendacog"]
+COGS = ["cogs.eventcog", "cogs.tendacog", "cogs.draftcog"]
+# COGS = ["cogs.eventcog", "cogs.tendacog"]
 
 # クラスの定義。ClientのサブクラスであるBotクラスを継承。
 class MyBot(commands.Bot):

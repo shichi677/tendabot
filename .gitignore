@@ -103,7 +103,9 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-buildpack_memo
+# dictfile
+/open_jtalk_dic_utf_8-1.11
+
 # test file
 t.py
 *.csv
@@ -115,4 +117,3 @@ select_ms.png
 image/test.jpg
 *.mp3
 
-/open_jtalk_dic_utf_8-1.11
