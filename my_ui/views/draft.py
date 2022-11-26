@@ -19,13 +19,11 @@ class DraftView(discord.ui.View):
         self.bot = bot
 
         self.organizer_id = None
-        # self.organizer_id = 615083789407748097  # debug
 
         self.team_num = None
         # self.team_num = 2  # debug
 
         self.leader_ids = None
-        # self.leader_ids = [615083789407748097, 759185408197656587, 758857025516994570, 977851535750995998]  # debug
 
         self.designate_status = {}
 
