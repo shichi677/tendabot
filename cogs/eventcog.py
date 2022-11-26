@@ -69,13 +69,27 @@ class EventCog(commands.Cog):
                     res_html = await res.read()
                     df = pd.read_html(res_html, header=0)[0]
 
-                    clanmatch_practice_date = re.sub("[^0-9]", "", df.iloc[2, 0])
-                    clanmatch_date = re.sub("[^0-9]", "", df.iloc[3, 0])
+                    try:
+                        clanmatch_practice_date = re.sub("[^0-9]", "", df.iloc[2, 0])
+                    
+                    except:
+                        clanmatch_practice_date = None
+                        logger.error("failed fetch clanmatch practice date")
+                    
+                    try:
+                        clanmatch_date = re.sub("[^0-9]", "", df.iloc[3, 0])
 
-                    if len(clanmatch_practice_date) < 12:
-                        clanmatch_practice_date += "00"
-                    if len(clanmatch_date) < 12:
-                        clanmatch_date += "00"
+                    except:
+                        clanmatch_date = None
+                        logger.error("failed fetch clanmatch date")
+
+                    if clanmatch_practice_date is not None:
+                        if len(clanmatch_practice_date) < 12:
+                            clanmatch_practice_date += "00"
+
+                    if clanmatch_date is not None:
+                        if len(clanmatch_date) < 12:
+                            clanmatch_date += "00"
 
                     return url, clanmatch_practice_date, clanmatch_date
                 else:
@@ -123,8 +137,12 @@ class EventCog(commands.Cog):
         try:
             self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=url)
             self.send_message_every_10sec.start()
-            logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
-            logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
+            
+            if self.practice_date is not None:
+                logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
+            
+            if self.match_date is not None:
+                logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
 
         except AttributeError:
             logger.info("デイコードからの情報取得に失敗しました")
@@ -161,7 +179,7 @@ class EventCog(commands.Cog):
             await self.clanmatch_send_message_ch.purge(check=lambda m: m.author.bot and "クランマッチ" not in m.clean_content, reason="initialize")
             self.bot.latest_tendaview_message_id = None
             logger.info("clanmatch schedule update")
-            self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=self.daycord_url)
+            self.daycord_url, self.practice_date, self.match_date = await self.fetch_daycord_message(url=None)
             logger.info(f"練習日時：{self.practice_date[0:4]}年{self.practice_date[4:6]}月{self.practice_date[6:8]}日{self.practice_date[8:10]}時{self.practice_date[10:12]}分")
             logger.info(f"本番日時：{self.match_date[0:4]}年{self.match_date[4:6]}月{self.match_date[6:8]}日{self.match_date[8:10]}時{self.match_date[10:12]}分")
 
