@@ -27,7 +27,8 @@ class DraftView(discord.ui.View):
 
         self.designate_status = {}
 
-        self.team = defaultdict(list)
+        # self.team = defaultdict(list)
+        self.team = {}
 
         # # debug
         # self.team = {}
@@ -60,19 +61,29 @@ class DraftView(discord.ui.View):
         team_emb = discord.Embed(title="チーム", description="", colour=discord.Colour.blue())
 
         for leader_id in self.leader_ids:
-            team_emb.add_field(name=f"{get_member(leader_id).display_name}チーム", value="-", inline=False)
+            team_emb.add_field(name=f"{get_member(leader_id).display_name}さんチーム", value="-", inline=False)
         await interaction.response.send_message(view=DraftingView(self), embeds=[draft_emb, team_emb])
 
     # @discord.ui.button(label="成績入力", style=discord.ButtonStyle.primary, custom_id="DraftView:input_result", row=0, disabled=True)
     @discord.ui.button(label="成績入力", style=discord.ButtonStyle.primary, custom_id="DraftView:input_result", row=0, disabled=False)  # debug
     async def input_result(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(view=InputResultView(self), ephemeral=True)
+
+        if interaction.user.id == self.organizer_id:
+            await interaction.response.send_message(view=InputResultView(self), ephemeral=True)
+
+        else:
+            await interaction.response.send_message("このボタンは主催者のみが実行できます。", ephemeral=True)
 
     # @discord.ui.button(label="結果発表", style=discord.ButtonStyle.primary, custom_id="DraftView:show_result", row=0, disabled=False)
     @discord.ui.button(label="結果発表", style=discord.ButtonStyle.primary, custom_id="DraftView:show_result", row=0, disabled=False)  # debug
     async def show_result(self, interaction: discord.Interaction, button: discord.ui.Button):
-        embeds = InputResultView(self).generate_result_embed()
-        await interaction.response.send_message(content="以下の結果を全体に公開します\nよろしいですか？", view=ConfirmView(embeds), embeds=embeds, ephemeral=True)
+
+        if interaction.user.id == self.organizer_id:
+            embeds = InputResultView(self).generate_result_embed(interaction)
+            await interaction.response.send_message(content="以下の結果を全体に公開します\nよろしいですか？", view=ConfirmView(embeds), embeds=embeds, ephemeral=True)
+
+        else:
+            await interaction.response.send_message("このボタンは主催者のみが実行できます。", ephemeral=True)
 
 
 class MemberListButton(discord.ui.Button):
@@ -267,6 +278,8 @@ class LeaderDicideView(discord.ui.View):
                 ),
             )
             self.view.leader_ids = [result[0] for i, result in enumerate(dice_sorted) if i < self.view.team_num]
+            for leader_id in self.view.leader_ids:
+                self.view.team[leader_id] = []
             await interaction.response.send_message(embed=embed)
 
             for item in self.view.children:
@@ -320,9 +333,9 @@ class MemberSelectView(discord.ui.View):
         self.view = view
         self.select_value = None
 
-        self.member_select_options = [discord.SelectOption(label=member.display_name, value=member.id) for i, member in enumerate(guild_members) if not member.bot]
-        # self.member_select_options = [discord.SelectOption(label=member.display_name, value=member.id) for i, member in enumerate(guild_members)] # debug
-        # self.member_select_options = [discord.SelectOption(label=member, value=i) for i, member in enumerate([f"test{j}" for j in range(29)])]  # debug
+        # self.member_select_options = [discord.SelectOption(label=member.display_name, value=member.id) for i, member in enumerate(guild_members) if not member.bot]
+        self.member_select_options = [discord.SelectOption(label=member.display_name, value=member.id) for i, member in enumerate(guild_members)]  # debug
+        # self.member_select_options = [discord.SelectOption(label=member, value=i) for i, member in enumerate([f"test{j}" for j in range(29)])]   # debug
 
         list_num = -(-len(self.member_select_options) // 25)
         if len(self.member_select_options) > 25:
@@ -340,27 +353,42 @@ class MemberSelectView(discord.ui.View):
 
     @discord.ui.button(label="指名", style=discord.ButtonStyle.success, custom_id="MemberSelectView:designate", row=2)
     async def select_member(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.member_select_dropdown.values:
-            get_member = interaction.guild.get_member
 
-            # self.view.designate_status[interaction.user.id] = int(self.member_select_dropdown.select_value)
+        selected_members = []
+        for leader_id, team_members in self.view.team.items():
 
-            # self.view.designate_status[interaction.user.id] = id
-            draft_message = interaction.channel.get_partial_message(interaction.message.reference.message_id)
-            print(draft_message)
-            draft_message = await draft_message.fetch()
-            button.disabled = True
-            await interaction.response.edit_message(view=self)
-            await interaction.followup.send(f"{get_member(self.view.designate_status[interaction.user.id]).display_name}さんを指名しました。", ephemeral=True)
-            print(self.view.designate_status)
-            designate_status_embed = discord.Embed(
-                title="指名状況",
-                description="\n".join([f"{interaction.guild.get_member(leader_id).display_name}が指名を完了しました。" for leader_id, designated_id in self.view.designate_status.items()]),
-                colour=discord.Colour.green(),
-            )
-            # designate_status_embed = discord.Embed(title="指名状況", description="\n".join([f"{leader_id}が指名を完了しました。" for leader_id, designated_id in self.view.designate_status.items()]))  # debug
+            selected_members.append(int(leader_id))
+            for member_id in team_members:
+                selected_members.append(int(member_id))
 
-            await draft_message.edit(embeds=[draft_message.embeds[0], draft_message.embeds[1], designate_status_embed])
+        if interaction.user.id in self.view.designate_status:
+
+            if self.view.designate_status[interaction.user.id] in selected_members:
+                # if False:
+                del self.view.designate_status[interaction.user.id]
+
+                msg = "リーダーまたはすでに獲得済みのメンバーは指名できません。"
+                await interaction.response.send_message(content=msg, ephemeral=True)
+
+            elif interaction.user.id in self.view.got_member_leaders:
+                del self.view.designate_status[interaction.user.id]
+                await interaction.response.send_message("指名が一巡するまで再指名することはできません。", ephemeral=True)
+
+            else:
+                get_member = interaction.guild.get_member
+
+                # await interaction.response.edit_message(view=self)
+                # await interaction.followup.send(f"{get_member(self.view.designate_status[interaction.user.id]).display_name}さんを指名しました。", ephemeral=True)
+                await interaction.response.send_message(f"{get_member(self.view.designate_status[interaction.user.id]).display_name}さんを指名しました。", ephemeral=True)
+
+                draft_message = interaction.channel.get_partial_message(interaction.message.reference.message_id)
+                draft_message = await draft_message.fetch()
+                designate_status_embed = discord.Embed(
+                    title="指名状況",
+                    description="\n".join([f"{get_member(leader_id).display_name}が指名を完了しました。" for leader_id, designated_id in self.view.designate_status.items()]),
+                    colour=discord.Colour.green(),
+                )
+                await draft_message.edit(embeds=[draft_message.embeds[0], draft_message.embeds[1], designate_status_embed])
 
         else:
             await interaction.response.send_message("選手が選択されていません。\n選手選択欄を確認してください。", ephemeral=True)
@@ -435,7 +463,6 @@ class DraftConflictView(discord.ui.View):
                 description=f"{get_member(dice_sorted[0][0]).display_name}が{get_member(self.designated_id).display_name}を獲得しました。",
                 colour=discord.Colour.green(),
             )
-            # embed = discord.Embed(title=self.title, description=f"{dice_sorted[0][0]}が{self.designated_id}を獲得しました。", colour=discord.Colour.green())  # debug
 
             embed.add_field(
                 name="結果",
@@ -510,21 +537,7 @@ class DraftingView(discord.ui.View):
     async def select_member(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         if interaction.user.id in self.view.leader_ids:
-
-            if interaction.user.id in self.view.got_member_leaders:
-                await interaction.response.send_message("指名が一巡するまで再指名することはできません。", ephemeral=True)
-
-            else:
-                selected_member = []
-                for leader_id, team_members in self.view.team.items():
-
-                    selected_member.append(interaction.guild.get_member(int(leader_id)))
-                    for member_id in team_members:
-                        selected_member.append(interaction.guild.get_member(int(member_id)))
-                print(selected_member)
-                members = [member for member in interaction.guild.members if member not in selected_member]
-                member_select_view = MemberSelectView(self.view, members)
-                await interaction.response.send_message(view=member_select_view, ephemeral=True)
+            await interaction.response.send_message(view=MemberSelectView(self.view, interaction.guild.members), ephemeral=True)
 
         else:
             await interaction.response.send_message("このボタンはリーダーのみが使用できます。", ephemeral=True)
@@ -616,9 +629,9 @@ class RegistResultView(discord.ui.View):
         mission_time = selected_options["mission_time"]
         self.draft_view.result_dict[team_name][mission_type] = mission_time
 
-        embeds = InputResultView(self.draft_view).generate_result_embed()
+        embeds = InputResultView(self.draft_view).generate_result_embed(interaction)
 
-        await interaction.response.send_message(embeds=embeds, ephemeral=True)
+        await interaction.response.send_message(content="登録しました！", embeds=embeds, ephemeral=True)
 
 
 class Feedback(discord.ui.Modal, title="ミッション時間入力"):
@@ -653,7 +666,7 @@ class InputResultView(discord.ui.View):
         self.add_item(team_select_dropdown)
         self.add_item(mission_select_dropdown)
 
-    def generate_result_embed(self):
+    def generate_result_embed(self, interaction: discord.Interaction):
         def calc_total_mission_time(times: List[str]):
             minute = 0
             second = 0
@@ -701,9 +714,14 @@ class InputResultView(discord.ui.View):
                 rank[i + 1] = rank[i] + cnt
                 cnt = 1
 
+        get_member = interaction.guild.get_member
+        get_member_named = interaction.guild.get_member_named
         for i, result in enumerate(sorted_total_results):
             team_name, total_time = result
-            ranking_embed.add_field(name=f"{medals[rank[i]]}{team_name}", value=total_time, inline=False)
+            get_member_named(team_name.replace("さんチーム", "")).id
+            value = "\n".join([get_member(team_member_id).display_name for team_member_id in self.draft_view.team[get_member_named(team_name.replace("さんチーム", "")).id]])
+            value += f"\n__TOTAL TIME: {total_time}__"
+            ranking_embed.add_field(name=f"{medals[rank[i]]}{team_name}", value=value, inline=False)
         embeds.append(ranking_embed)
 
         return embeds
