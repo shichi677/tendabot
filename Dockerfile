@@ -5,7 +5,8 @@ RUN apt install -y \
     locales \
     ffmpeg \
     cmake \
-    build-essential
+    build-essential \
+    enchant-2
 RUN locale-gen ja_JP.UTF-8
 
 ENV TZ Asia/Tokyo
