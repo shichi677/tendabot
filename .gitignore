@@ -117,3 +117,6 @@ select_ms.png
 image/test.jpg
 *.mp3
 
+alphabet_to_kana_test.py
+
+!alkana_dict.csv
