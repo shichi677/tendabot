@@ -13,7 +13,7 @@ def replace_alphabet_to_kana(text):
     # search word of 3 character or more and to kana
     while word := re.search(r"[a-z-A-Z]{3,}", text):
         output += text[: word.start()] + word_to_kana(word.group())
-        text = text[word.end() :]
+        text = text[word.end():]
 
     return output + text
 
@@ -31,7 +31,6 @@ def word_to_kana(word):
         if re.search("[a-zA-Z]+", hiraganized_word):
             output = ""
             split_result = splitter.split(word.lower())
-
             # if compound word
             if len(split_result) > 1:
                 # to kana by each splited word
@@ -41,7 +40,7 @@ def word_to_kana(word):
                 return output
 
             # if not compund word
-            elif len(split_result) == 1:
+            elif len(split_result) <= 1:
                 return word
 
         # if ro-maji
