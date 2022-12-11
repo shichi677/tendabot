@@ -45,4 +45,4 @@ RUN curl -s -OL https://jaist.dl.sourceforge.net/project/open-jtalk/Dictionary/o
 
 WORKDIR /code
 RUN rm -rf voicevox_core
-CMD fallocate -l 2048MB _swapfile && mkswap _swapfile && swapon _swapfile && ls -hla; free -m; python discordbot.py
+CMD fallocate -l $(($(stat -f -c "(%a*%s/10)*7" .))) _swapfile && mkswap _swapfile && swapon _swapfile && ls -hla; free -m; python discordbot.py
